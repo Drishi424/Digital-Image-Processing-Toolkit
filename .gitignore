@@ -9,3 +9,7 @@ pycache/
 .idea/
 
 .DS_Store
+
+dist/
+build/
+__pycache__/
