@@ -1,0 +1,80 @@
+/* Main Window */
+QMainWindow {
+    background-color: #202124;
+    color: white;
+}
+
+/* Widgets */
+QWidget {
+    background-color: #202124;
+    color: white;
+    font-size: 10pt;
+}
+
+/* Menu Bar */
+QMenuBar {
+    background-color: #2b2b2b;
+    color: white;
+}
+
+QMenuBar::item:selected {
+    background-color: #3c4043;
+}
+
+/* Menus */
+QMenu {
+    background-color: #2b2b2b;
+    color: white;
+}
+
+QMenu::item:selected {
+    background-color: #3c78d8;
+}
+
+/* Toolbar */
+QToolBar {
+    background-color: #2b2b2b;
+    spacing: 6px;
+    border: none;
+}
+
+/* Push Buttons */
+QPushButton {
+    background-color: #3c78d8;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px;
+}
+
+QPushButton:hover {
+    background-color: #4a8ef0;
+}
+
+/* List Widget */
+QListWidget {
+    background-color: #2b2b2b;
+    border: 1px solid #444;
+}
+
+QListWidget::item:selected {
+    background-color: #3c78d8;
+}
+
+/* Spin Boxes */
+QSpinBox,
+QDoubleSpinBox {
+    background-color: #2b2b2b;
+    border: 1px solid #555;
+    color: white;
+}
+
+/* Status Bar */
+QStatusBar {
+    background-color: #2b2b2b;
+}
+
+/* Splitter */
+QSplitter::handle {
+    background-color: #444;
+}

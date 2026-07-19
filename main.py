@@ -1,59 +1,32 @@
-import cv2
-from Modules.enhancements import Enhancements
-from Modules.noise_addition import Noise
-from Modules.filtering import Filtering
+import ctypes
+import sys
 
-enhancements = Enhancements()
-noise = Noise()
-filtering = Filtering()
+from PySide6.QtWidgets import QApplication
+from PySide6.QtGui import QIcon
 
-image = cv2.imread("Images/sample.jpeg")
+from UI.main_window import MainWindow
+from Core.utils import resource_path
 
+def main():
 
+    myappid = "drishi.dipstudio.v1.0"
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
-#Enhancements
-negative_img = enhancements.negative(image)
-cv2.imwrite("Images/output/negative.jpg", negative_img)
+    app = QApplication(sys.argv)
 
-log_img = enhancements.log_transform(image)
-cv2.imwrite("Images/output/log.jpg", log_img)
+    app.setWindowIcon(QIcon(resource_path("Assets/icons/app_icon.ico")))
 
-gamma_img = enhancements.gamma_transform(image, gamma=0.5)
-cv2.imwrite("Images/output/gamma.jpg", gamma_img)
+    app.setApplicationName("DIP Studio")
 
-contrast_img = enhancements.contrast_stretch(image)
-cv2.imwrite("Images/output/contrast.jpg", contrast_img)
+    # Load Dark Theme
+    with open((resource_path("Themes/dark.qss")), "r") as file:
+        app.setStyleSheet(file.read())
 
-equalized_img = enhancements.histogram_equalization(image)
-cv2.imwrite("Images/output/equalized.jpg", equalized_img)
+    window = MainWindow()
+    window.show()
 
-reference = cv2.imread("Images/reference.jpg")
-
-if reference is None:
-	print("Warning: reference image 'Images/reference.jpg' not found. Skipping histogram matching.")
-else:
-	matched_img = enhancements.histogram_matching(image, reference)
-	cv2.imwrite("Images/output/matched.jpg", matched_img)
+    sys.exit(app.exec())
 
 
-
-#Salt and paper
-salt_img = noise.salt_pepper_noise(image, amount=0.05)
-cv2.imwrite("Images/output/salt_pepper.jpg", salt_img)
-
-gaussian_img = noise.gaussian_noise(image, mean=0, sigma=25)
-cv2.imwrite("Images/output/gaussian.jpg", gaussian_img)
-
-
-
-# Filters
-mean_img = filtering.mean_filter(image, kernel_size=3)
-cv2.imwrite("Images/output/mean_filter.jpg", mean_img)
-
-median_img = filtering.median_filter(image, kernel_size=3)
-cv2.imwrite("Images/output/median_filter.jpg", median_img)
-
-gaussian_filter_img = filtering.gaussian_filter(image, kernel_size=5, sigma=1)
-cv2.imwrite("Images/output/gaussian_filter.jpg", gaussian_filter_img)
-
-print("All operations completed successfully!")
+if __name__ == "__main__":
+    main()

@@ -1,10 +1,10 @@
-## Digital Image Prossessing Toolkit
+## Digital Image Processing Toolkit
 
-This project is a Python-based image processing demonstration. It uses OpenCV, NumPy, and scikit-image to apply a variety of image enhancement, noise addition, and filtering operations to a sample input image.
+DIP Studio is a Python-based desktop GUI application for interactive image processing. Built with PySide6, OpenCV, NumPy, and scikit-image, it lets you open an image, apply processing algorithms in real time, and compare results side by side.
 
 ## Project Overview
 
-The repository includes a simple pipeline in `main.py` that loads an image from `Images/sample.jpeg`, performs several processing operations, and writes the results to `Images/output/`.
+The application launches a full windowed interface (`main.py`) where you can load any image, select a processing module from the sidebar, tune parameters in the property panel, and view the original and processed images simultaneously.
 
 ## Key Features
 
@@ -14,23 +14,73 @@ The repository includes a simple pipeline in `main.py` that loads an image from 
   - Gamma correction
   - Contrast stretching
   - Histogram equalization
-  - Histogram matching against `Images/reference.jpg` (if present)
+  - Histogram matching against `Images/reference.jpg`
 - Noise synthesis:
   - Salt and pepper noise
   - Gaussian noise
-- Filtering:
+- Spatial filtering:
   - Mean filter
   - Median filter
   - Gaussian filter
+- Edge detection:
+  - Roberts, Prewitt, Sobel, Laplacian, Canny
+- Segmentation:
+  - Threshold, Region Growing, Watershed
+- Frequency domain:
+  - Fourier Transform
+  - Ideal Low Pass / High Pass filters
+  - Butterworth filter
+  - Gaussian filter
+- Morphological operations:
+  - Dilation, Erosion, Opening, Closing, Boundary Extraction
+- Geometric transformations:
+  - Translation, Rotation, Scaling, Affine
+- Compression:
+  - Run Length Encoding (statistics report)
+  - Huffman Coding (statistics report)
+  - JPEG Compression (quality control + file size report)
+- Undo / Redo history
+- Before / After comparison viewer
+- Histogram viewer
+- Image statistics panel
+- Recent files list
+- Dark theme
 
 ## Project Structure
 
-- `main.py` - Entry point for running the image processing pipeline.
-- `Modules/enhancements.py` - Implements enhancement operations.
-- `Modules/noise_addition.py` - Implements salt & pepper and Gaussian noise generation.
-- `Modules/filtering.py` - Implements mean, median, and Gaussian smoothing filters.
-- `Images/` - Contains input images and output directory for generated results.
-- `requirements.txt` - Python dependencies required to run the project.
+```
+├── main.py                     # Application entry point
+├── Core/
+│   ├── image_manager.py        # Image state, undo/redo stack
+│   ├── processor.py            # Aggregates all processing modules
+│   └── utils.py                # Resource path helper (PyInstaller compatible)
+├── Modules/
+│   ├── enhancements.py         # Enhancement operations
+│   ├── noise_addition.py       # Noise generation
+│   ├── filtering.py            # Spatial filters
+│   ├── edge_detection.py       # Edge detection algorithms
+│   ├── segmentation.py         # Segmentation algorithms
+│   ├── frequency_domain.py     # Frequency domain filters
+│   ├── morphological.py        # Morphological operations
+│   ├── transformation.py       # Geometric transformations
+│   └── compression.py          # Compression algorithms
+├── UI/
+│   ├── main_window.py          # Main application window
+│   ├── sidebar.py              # Module navigation sidebar
+│   ├── image_viewer.py         # Zoomable image display widget
+│   ├── property_panel.py       # Algorithm selector and parameter controls
+│   ├── comparison_viewer.py    # Before/after comparison window
+│   ├── histogram_viewer.py     # Histogram display window
+│   ├── statistics_panel.py     # Image statistics panel
+│   ├── compression_report.py   # Compression results dialog
+│   ├── about_dialog.py         # About dialog
+│   └── welcome_screen.py       # Welcome / landing screen
+├── Assets/icons/               # Toolbar and application icons
+├── Themes/dark.qss             # Dark stylesheet
+├── Images/                     # Sample and reference images
+│   └── output/                 # Output directory for saved results
+└── requirements.txt
+```
 
 ## Dependencies
 
@@ -44,18 +94,12 @@ Dependencies:
 - numpy
 - opencv-python
 - scikit-image
+- PySide6
 
 ## Usage
-
-Run the project with:
 
 ```bash
 python main.py
 ```
 
-After running, the processed images are saved in `Images/output/`.
-
-## Notes
-
-- If `Images/reference.jpg` is not found, histogram matching is skipped and a warning is printed.
-- The code assumes a valid image exists at `Images/sample.jpeg`.
+This opens the DIP Studio window. Use **File > Open Image** (or `Ctrl+O`) to load an image, then select a module from the sidebar and click **Apply**.
