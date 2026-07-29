@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QStatusBar,
     QToolBar,
     QWidget,
+    QVBoxLayout
 )
 from PySide6.QtGui import QAction, QIcon, QKeySequence
 from PySide6.QtCore import QSize
@@ -29,11 +30,14 @@ from UI.histogram_viewer import HistogramViewer
 from UI.statistics_panel import StatisticsPanel
 from UI.about_dialog import AboutDialog
 from UI.welcome_screen import WelcomeScreen
+from UI.ai_dashboard import AIDashboard
 
 from Core.image_manager import ImageManager
 from Core.processor import Processor
 from Core.utils import resource_path
 
+from Modules.ai.detector import YOLODetector
+from Modules.ai.stream_detector import StreamDetector
 
 class MainWindow(QMainWindow):
 
@@ -48,9 +52,11 @@ class MainWindow(QMainWindow):
         self.comparison = ComparisonViewer()
         self.histogram = HistogramViewer()
         self.statistics = StatisticsPanel()
+        self.ai_dashboard = AIDashboard()
         self.compression_report = CompressionReport()
         self.about = AboutDialog()
         self.welcome = WelcomeScreen()
+        self.detector = YOLODetector()
 
         self.setWindowTitle("DIP Studio")
         self.resize(1600, 900)
@@ -102,6 +108,8 @@ class MainWindow(QMainWindow):
         )
         view_menu.addAction(statistics_action)
 
+        ai_menu = menu.addMenu("AI Vision")
+
         help_menu = menu.addMenu("Help")
 
         about_action = QAction("About", self)
@@ -141,6 +149,25 @@ class MainWindow(QMainWindow):
         edit_menu.addAction(undo_action)
         edit_menu.addAction(redo_action)
 
+        #AI Vision
+        detect_action = QAction("Object Detection", self)
+        detect_action.triggered.connect(self.detect_objects)
+
+        video_action = QAction("Video Detection", self)
+        video_action.triggered.connect(self.detect_video)
+
+        webcam_action = QAction("Webcam Detection", self)
+        webcam_action.triggered.connect(self.detect_webcam)
+
+        stop_action = QAction("Stop Detection", self)
+        stop_action.triggered.connect(self.stop_detection)
+
+        pause_action = QAction("Pause Detection", self)
+        pause_action.triggered.connect(self.pause_detection)
+
+        resume_action = QAction("Resume Detection", self)
+        resume_action.triggered.connect(self.resume_detection)
+
         file_menu.addAction(open_action)
         file_menu.addAction(save_action)
         file_menu.addAction(reset_action)
@@ -149,6 +176,14 @@ class MainWindow(QMainWindow):
         self.update_recent_menu()
         file_menu.addSeparator()
         file_menu.addAction(exit_action)
+
+        ai_menu.addAction(detect_action)
+        ai_menu.addAction(video_action)
+        ai_menu.addAction(webcam_action)
+        ai_menu.addSeparator()
+        ai_menu.addAction(pause_action)
+        ai_menu.addAction(resume_action)
+        ai_menu.addAction(stop_action)
 
         help_menu.addAction(about_action)
 
@@ -279,9 +314,15 @@ class MainWindow(QMainWindow):
         )
         self.properties.apply_button.clicked.connect(self.apply_algorithm)
 
+        right_panel = QWidget()
+        right_layout = QVBoxLayout(right_panel)
+
+        right_layout.addWidget(self.properties)
+        right_layout.addWidget(self.ai_dashboard)
+
         splitter.addWidget(self.sidebar)
         splitter.addWidget(workspace)
-        splitter.addWidget(self.properties)
+        splitter.addWidget(right_panel)
 
         splitter.setStretchFactor(1, 8)
 
@@ -1058,3 +1099,219 @@ class MainWindow(QMainWindow):
                 "Open Image",
                 str(e)
             )
+
+    def detect_objects(self):
+
+        if self.original.get_image() is None:
+            QMessageBox.warning(
+                self,
+                "No Image",
+                "Please open an image first."
+            )
+            return
+
+        image = self.original.get_image()
+
+        confidence = self.ai_dashboard.confidence_value()
+
+        annotated, detections = self.detector.detect(
+            image,
+            confidence
+        )
+        self.ai_dashboard.update_source("Image")
+        self.ai_dashboard.update_status("Completed")
+        self.ai_dashboard.reset()
+        self.ai_dashboard.update_model("YOLO11n")
+        self.ai_dashboard.update_objects(detections)
+
+        self.processed.set_image(annotated)
+
+        if not detections:
+            QMessageBox.information(
+                self,
+                "Detection",
+                "No objects detected."
+            )
+            return
+
+        message = ""
+
+        for obj in detections:
+            message += (
+                f"{obj['class']} - "
+                f"{obj['confidence']:.2f}%\n"
+            )
+
+        QMessageBox.information(
+            self,
+            "Detected Objects",
+            message
+        )
+
+    def detect_video(self):
+        if hasattr(self, "stream_detector"):
+
+            if self.stream_detector.isRunning():
+
+                self.stream_detector.stop()
+                self.stream_detector.wait()
+
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Open Video",
+            "",
+            "Videos (*.mp4 *.avi *.mov *.mkv)"
+        )
+
+        if not file_path:
+            return
+
+        self.stack.setCurrentIndex(1)
+
+        self.ai_dashboard.reset()
+        self.ai_dashboard.update_source("Video")
+        self.ai_dashboard.update_status("Running")
+        
+        self.stream_detector = StreamDetector(
+            self.detector,
+            file_path,
+            self.ai_dashboard.confidence_value()
+        )
+
+        self.stream_detector.detections_ready.connect(
+            self.ai_dashboard.update_objects
+        )
+
+        self.stream_detector.frame_ready.connect(
+            self.processed.set_image
+        )
+
+        self.stream_detector.original_frame_ready.connect(
+            self.original.set_image
+        )
+
+        self.stream_detector.fps_ready.connect(
+            self.ai_dashboard.update_fps
+        )
+
+        self.stream_detector.finished.connect(
+            self.stream_finished
+        )
+
+        self.stream_detector.error.connect(
+            self.stream_error
+        )
+
+        self.stream_detector.start()
+
+    def stream_finished(self):
+
+        self.ai_dashboard.update_status("Completed")
+        self.ai_dashboard.update_fps(0)
+
+        QMessageBox.information(
+            self,
+            "Video Detection",
+            "Video processing completed."
+        )
+
+    def stream_error(self, message):
+
+        QMessageBox.critical(
+            self,
+            "Video Detection",
+            message
+        )
+
+    def closeEvent(self, event):
+
+        if hasattr(self, "stream_detector"):
+
+            if self.stream_detector.isRunning():
+
+                self.stream_detector.stop()
+                self.stream_detector.wait()
+
+        super().closeEvent(event)
+
+    def detect_webcam(self):
+
+        self.stack.setCurrentIndex(1)
+        self.ai_dashboard.reset()
+
+        self.ai_dashboard.update_source("Webcam")
+        self.ai_dashboard.update_status("Running")
+
+        self.stream_detector = StreamDetector(
+            self.detector,
+            0,
+            self.ai_dashboard.confidence_value()
+        )
+
+        self.stream_detector.detections_ready.connect(
+                    self.ai_dashboard.update_objects
+        )
+
+        self.stream_detector.frame_ready.connect(
+            self.processed.set_image
+        )
+
+        self.stream_detector.original_frame_ready.connect(
+            self.original.set_image
+        )
+
+        self.stream_detector.fps_ready.connect(
+            self.ai_dashboard.update_fps
+        )
+
+        self.stream_detector.finished.connect(
+            self.stream_finished
+        )
+
+        self.stream_detector.error.connect(
+            self.stream_error
+        )
+
+        self.stream_detector.start()
+
+    def stop_detection(self):
+        self.ai_dashboard.update_status("Stopped")
+        self.ai_dashboard.update_fps(0)
+        self.ai_dashboard.update_objects([])
+
+        if hasattr(self, "stream_detector"):
+
+            if self.stream_detector.isRunning():
+
+                self.stream_detector.stop()
+                self.stream_detector.wait()
+
+                QMessageBox.information(
+                    self,
+                    "AI Vision",
+                    "Detection stopped."
+                )
+
+    def pause_detection(self):
+
+        if hasattr(self, "stream_detector"):
+
+            if self.stream_detector.isRunning():
+
+                self.stream_detector.pause()
+
+                self.ai_dashboard.update_status("Paused")
+
+                self.statusBar().showMessage("Detection paused.")
+
+    def resume_detection(self):
+
+        if hasattr(self, "stream_detector"):
+
+            if self.stream_detector.isRunning():
+
+                self.stream_detector.resume()
+
+                self.ai_dashboard.update_status("Running")
+
+                self.statusBar().showMessage("Detection resumed.")

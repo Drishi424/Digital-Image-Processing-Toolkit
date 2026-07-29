@@ -24,6 +24,9 @@ class ImageViewer(QWidget):
         self.image = QLabel("No Image Loaded")
         self.image.setAlignment(Qt.AlignCenter)
         self.image.setMinimumSize(500, 500)
+
+        self.cv_image = None
+
         self.zoom_factor = 1.0
         self.current_pixmap = None
 
@@ -42,23 +45,25 @@ class ImageViewer(QWidget):
     # --------------------------------------------------
 
     def set_image(self, image):
-       rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        self.cv_image = image.copy()
+       
+        rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-       h, w, ch = rgb.shape
+        h, w, ch = rgb.shape
 
-       bytes_per_line = ch * w
+        bytes_per_line = ch * w
 
-       qimage = QImage(
-            rgb.data,
-            w,
-            h,
-            bytes_per_line,
-            QImage.Format_RGB888
-       )
+        qimage = QImage(
+                rgb.data,
+                w,
+                h,
+                bytes_per_line,
+                QImage.Format_RGB888
+        )
 
-       self.current_pixmap = QPixmap.fromImage(qimage)
+        self.current_pixmap = QPixmap.fromImage(qimage)
 
-       self.update_view()
+        self.update_view()
 
     # --------------------------------------------------
 
@@ -107,3 +112,8 @@ class ImageViewer(QWidget):
         super().resizeEvent(event)
 
         self.update_view()
+
+    def get_image(self):
+            if self.cv_image is None:
+                return None
+            return self.cv_image.copy()
