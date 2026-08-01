@@ -2,6 +2,7 @@ import cv2
 import easyocr
 import torch
 
+from Modules.ai.preprocessing import OCRPreprocessor
 
 class OCRDetector:
 
@@ -14,12 +15,13 @@ class OCRDetector:
             languages,
             gpu=torch.cuda.is_available()
         )
+        print(f"[OCR] Running on: {self.reader.device.upper()}")
 
-    # --------------------------------------------------
+    def detect(self, image, confidence=0.25):
 
-    def detect(self, image):
+        processed = OCRPreprocessor.clahe(image)
 
-        results = self.reader.readtext(image)
+        results = self.reader.readtext(processed)
 
         annotated = image.copy()
 
@@ -27,7 +29,10 @@ class OCRDetector:
 
         for result in results:
 
-            bbox, text, confidence = result
+            bbox, text, score = result
+
+            if score < confidence:
+                continue
 
             # Convert to integer points
             points = []
@@ -65,7 +70,7 @@ class OCRDetector:
                 "text": text,
 
                 "confidence": round(
-                    confidence * 100,
+                    score * 100,
                     2
                 ),
 

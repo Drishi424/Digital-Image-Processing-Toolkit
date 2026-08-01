@@ -26,7 +26,7 @@ class WelcomeScreen(QWidget):
             """
         )
 
-        version = QLabel("Version 1.0")
+        version = QLabel("Version 2.0")
         version.setAlignment(Qt.AlignCenter)
 
         subtitle = QLabel(
@@ -45,8 +45,8 @@ class WelcomeScreen(QWidget):
 
         info = QLabel(
             "\nOR\n\n"
-            "Drag & Drop Image Here\n\n"
-            "PNG • JPG • JPEG • BMP • TIFF"
+            "Drag & Drop Image or Video Here\n\n"
+            "PNG • JPG • JPEG • BMP • TIFF • MP4"
         )
 
         info.setAlignment(Qt.AlignCenter)

@@ -81,6 +81,31 @@ class AIDashboard(QWidget):
 
         main_layout.addStretch()
 
+        # ==========================================
+        # OCR Confidence
+        # ==========================================
+
+        self.ocr_confidence_slider = QSlider(Qt.Horizontal)
+
+        self.ocr_confidence_slider.setRange(10, 100)
+        self.ocr_confidence_slider.setValue(50)
+
+        self.ocr_confidence_label = QLabel("0.50")
+
+        self.ocr_confidence_slider.valueChanged.connect(
+            self.update_ocr_confidence_label
+        )
+
+        ocr_layout = QHBoxLayout()
+
+        ocr_layout.addWidget(self.ocr_confidence_slider)
+        ocr_layout.addWidget(self.ocr_confidence_label)
+
+        info_layout.addRow(
+            "OCR Confidence :",
+            ocr_layout
+        )
+
     # ==================================================
     # Update Methods
     # ==================================================
@@ -131,6 +156,19 @@ class AIDashboard(QWidget):
         value = self.confidence_slider.value() / 100
 
         self.confidence_label.setText(f"{value:.2f}")
+
+    def get_ocr_confidence(self):
+
+        return self.ocr_confidence_slider.value() / 100
+
+
+    def update_ocr_confidence_label(self):
+
+        value = self.ocr_confidence_slider.value() / 100
+
+        self.ocr_confidence_label.setText(
+            f"{value:.2f}"
+        )
 
     # ==================================================
     # Reset

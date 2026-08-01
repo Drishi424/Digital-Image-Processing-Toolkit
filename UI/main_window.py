@@ -31,6 +31,7 @@ from UI.statistics_panel import StatisticsPanel
 from UI.about_dialog import AboutDialog
 from UI.welcome_screen import WelcomeScreen
 from UI.ai_dashboard import AIDashboard
+from UI.dialogs.ocr_result_dialog import OCRResultDialog
 
 from Core.image_manager import ImageManager
 from Core.processor import Processor
@@ -56,6 +57,7 @@ class MainWindow(QMainWindow):
         self.ai_dashboard = AIDashboard()
         self.compression_report = CompressionReport()
         self.about = AboutDialog()
+        self.ocr_dialog = OCRResultDialog(self)
         self.welcome = WelcomeScreen()
         self.detector = YOLODetector()
         self.ocr_detector = OCRDetector()
@@ -1365,7 +1367,25 @@ class MainWindow(QMainWindow):
 
         start = time.perf_counter()
 
-        annotated, detections = self.ocr_detector.detect(image)
+        confidence = self.ai_dashboard.get_ocr_confidence()
+
+        annotated, detections = self.ocr_detector.detect(
+            image,
+            confidence
+        )
+        if detections:
+
+            average_confidence = (
+                sum(
+                    item["confidence"]
+                    for item in detections
+                )
+                / len(detections)
+            )
+
+        else:
+
+            average_confidence = 0
 
         elapsed = time.perf_counter() - start
 
@@ -1394,16 +1414,15 @@ class MainWindow(QMainWindow):
             )
             return
 
-        text = ""
-
-        for item in detections:
-            text += (
-                f"{item['text']}"
-                f" ({item['confidence']:.2f}%)\n"
-            )
-
-        QMessageBox.information(
-            self,
-            "OCR Result",
-            text
+        text = "\n".join(
+            f"{item['text']} ({item['confidence']:.2f}%)"
+            for item in detections
         )
+
+        self.ocr_dialog.set_text(
+            text=text,
+            average_confidence=average_confidence,
+            processing_time=elapsed,
+            language="English"
+        )
+        self.ocr_dialog.exec()
