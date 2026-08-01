@@ -1,11 +1,16 @@
 from ultralytics import YOLO
 import cv2
+import torch
 
 
 class YOLODetector:
 
     def __init__(self):
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = YOLO("yolo11n.pt")
+        self.model.to(self.device)
+
+        print(f"[YOLO] Running on: {self.device.upper()}")
 
     def detect(self, image, confidence=0.25):
         results = self.model.predict(

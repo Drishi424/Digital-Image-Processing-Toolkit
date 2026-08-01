@@ -39,7 +39,7 @@ class AIDashboard(QWidget):
 
         self.confidence_slider.setRange(10, 100)
         self.confidence_slider.setValue(25)
-        self.confidence_value = QLabel("0.25")
+        self.confidence_label = QLabel("0.25")
         self.confidence_slider.valueChanged.connect(
             self.update_confidence_label
         )
@@ -53,13 +53,15 @@ class AIDashboard(QWidget):
         confidence_layout = QHBoxLayout()
 
         confidence_layout.addWidget(self.confidence_slider)
-        confidence_layout.addWidget(self.confidence_value)
+        confidence_layout.addWidget(self.confidence_label)
 
         info_layout.addRow(
             "Confidence :",
             confidence_layout
         )
 
+        info_group.setLayout(info_layout)
+        
         # ==========================================
         # Objects
         # ==========================================
@@ -120,15 +122,15 @@ class AIDashboard(QWidget):
 
             self.object_list.addItem(f"{name} : {count}")
 
-    def confidence_value(self):
+    def get_confidence(self):
 
-        return self.confidence_spin.value()/100
+        return self.confidence_slider.value()/100
 
     def update_confidence_label(self):
 
         value = self.confidence_slider.value() / 100
 
-        self.confidence_value.setText(f"{value:.2f}")
+        self.confidence_label.setText(f"{value:.2f}")
 
     # ==================================================
     # Reset

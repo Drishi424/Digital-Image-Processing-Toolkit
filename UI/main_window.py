@@ -38,6 +38,7 @@ from Core.utils import resource_path
 
 from Modules.ai.detector import YOLODetector
 from Modules.ai.stream_detector import StreamDetector
+from Modules.ai.ocr import OCRDetector
 
 class MainWindow(QMainWindow):
 
@@ -57,6 +58,7 @@ class MainWindow(QMainWindow):
         self.about = AboutDialog()
         self.welcome = WelcomeScreen()
         self.detector = YOLODetector()
+        self.ocr_detector = OCRDetector()
 
         self.setWindowTitle("DIP Studio")
         self.resize(1600, 900)
@@ -168,6 +170,9 @@ class MainWindow(QMainWindow):
         resume_action = QAction("Resume Detection", self)
         resume_action.triggered.connect(self.resume_detection)
 
+        ocr_action = QAction("Image OCR", self)
+        ocr_action.triggered.connect(self.detect_text)
+
         file_menu.addAction(open_action)
         file_menu.addAction(save_action)
         file_menu.addAction(reset_action)
@@ -180,6 +185,8 @@ class MainWindow(QMainWindow):
         ai_menu.addAction(detect_action)
         ai_menu.addAction(video_action)
         ai_menu.addAction(webcam_action)
+        ai_menu.addSeparator()
+        ai_menu.addAction(ocr_action)
         ai_menu.addSeparator()
         ai_menu.addAction(pause_action)
         ai_menu.addAction(resume_action)
@@ -1112,19 +1119,33 @@ class MainWindow(QMainWindow):
 
         image = self.original.get_image()
 
-        confidence = self.ai_dashboard.confidence_value()
+        confidence = self.ai_dashboard.get_confidence()
 
+        # Start timer
+        start = time.perf_counter()
+
+        # Run YOLO detection
         annotated, detections = self.detector.detect(
             image,
             confidence
         )
+
+        # Stop timer
+        elapsed = time.perf_counter() - start
+
+        # Calculate FPS
+        fps = 1 / elapsed if elapsed > 0 else 0
+
+        # Update dashboard
+        self.ai_dashboard.reset()
+        self.ai_dashboard.update_fps(fps)
         self.ai_dashboard.update_source("Image")
         self.ai_dashboard.update_status("Completed")
-        self.ai_dashboard.reset()
         self.ai_dashboard.update_model("YOLO11n")
-        self.ai_dashboard.update_objects(detections)
 
         self.processed.set_image(annotated)
+        self.ai_dashboard.update_objects(detections)
+        self.ai_dashboard.update_status("Completed")
 
         if not detections:
             QMessageBox.information(
@@ -1169,13 +1190,16 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentIndex(1)
 
         self.ai_dashboard.reset()
-        self.ai_dashboard.update_source("Video")
+        self.ai_dashboard.update_model("YOLO11n")
+        self.ai_dashboard.update_source(
+            os.path.basename(file_path)
+        )
         self.ai_dashboard.update_status("Running")
         
         self.stream_detector = StreamDetector(
             self.detector,
             file_path,
-            self.ai_dashboard.confidence_value()
+            self.ai_dashboard.get_confidence()
         )
 
         self.stream_detector.detections_ready.connect(
@@ -1208,6 +1232,7 @@ class MainWindow(QMainWindow):
 
         self.ai_dashboard.update_status("Completed")
         self.ai_dashboard.update_fps(0)
+        self.ai_dashboard.update_objects([])
 
         QMessageBox.information(
             self,
@@ -1216,6 +1241,9 @@ class MainWindow(QMainWindow):
         )
 
     def stream_error(self, message):
+        self.ai_dashboard.update_status("Error")
+        self.ai_dashboard.update_fps(0)
+        self.ai_dashboard.update_objects([])
 
         QMessageBox.critical(
             self,
@@ -1239,13 +1267,14 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentIndex(1)
         self.ai_dashboard.reset()
 
+        self.ai_dashboard.update_model("YOLO11n")
         self.ai_dashboard.update_source("Webcam")
         self.ai_dashboard.update_status("Running")
 
         self.stream_detector = StreamDetector(
             self.detector,
             0,
-            self.ai_dashboard.confidence_value()
+            self.ai_dashboard.get_confidence()
         )
 
         self.stream_detector.detections_ready.connect(
@@ -1315,3 +1344,66 @@ class MainWindow(QMainWindow):
                 self.ai_dashboard.update_status("Running")
 
                 self.statusBar().showMessage("Detection resumed.")
+
+    def detect_text(self):
+
+        if self.original.get_image() is None:
+            QMessageBox.warning(
+                self,
+                "No Image",
+                "Please open an image first."
+            )
+            return
+
+        image = self.original.get_image()
+
+        # Dashboard
+        self.ai_dashboard.reset()
+        self.ai_dashboard.update_model("EasyOCR")
+        self.ai_dashboard.update_source("Image")
+        self.ai_dashboard.update_status("Running")
+
+        start = time.perf_counter()
+
+        annotated, detections = self.ocr_detector.detect(image)
+
+        elapsed = time.perf_counter() - start
+
+        fps = 1 / elapsed if elapsed > 0 else 0
+
+        self.ai_dashboard.update_fps(fps)
+
+        self.processed.set_image(annotated)
+
+        texts = []
+
+        for item in detections:
+            texts.append({
+                "class": item["text"]
+            })
+
+        self.ai_dashboard.update_objects(texts)
+
+        self.ai_dashboard.update_status("Completed")
+
+        if not detections:
+            QMessageBox.information(
+                self,
+                "OCR",
+                "No text detected."
+            )
+            return
+
+        text = ""
+
+        for item in detections:
+            text += (
+                f"{item['text']}"
+                f" ({item['confidence']:.2f}%)\n"
+            )
+
+        QMessageBox.information(
+            self,
+            "OCR Result",
+            text
+        )
