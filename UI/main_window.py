@@ -16,9 +16,10 @@ from PySide6.QtWidgets import QMessageBox
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import QSettings
 
+import cv2
+import torch
 import os
 import time
-import cv2
 from functools import partial
 
 from UI.sidebar import Sidebar
@@ -1121,6 +1122,23 @@ class MainWindow(QMainWindow):
 
         image = self.original.get_image()
 
+        assert image is not None
+        
+        height, width = image.shape[:2]
+    
+        self.ai_dashboard.update_resolution(
+            width,
+            height
+        )
+
+        device = (
+            torch.cuda.get_device_name(0)
+            if torch.cuda.is_available()
+            else "CPU"
+        )
+
+        self.ai_dashboard.update_device(device)
+
         confidence = self.ai_dashboard.get_confidence()
 
         # Start timer
@@ -1135,6 +1153,10 @@ class MainWindow(QMainWindow):
         # Stop timer
         elapsed = time.perf_counter() - start
 
+        self.ai_dashboard.update_inference_time(
+            elapsed * 1000
+        )
+
         # Calculate FPS
         fps = 1 / elapsed if elapsed > 0 else 0
 
@@ -1147,6 +1169,9 @@ class MainWindow(QMainWindow):
 
         self.processed.set_image(annotated)
         self.ai_dashboard.update_objects(detections)
+        self.ai_dashboard.update_object_count(
+            len(detections)
+        )
         self.ai_dashboard.update_status("Completed")
 
         if not detections:
@@ -1359,6 +1384,23 @@ class MainWindow(QMainWindow):
 
         image = self.original.get_image()
 
+        assert image is not None
+
+        height, width = image.shape[:2]
+
+        self.ai_dashboard.update_resolution(
+            width,
+            height
+        )
+
+        device = (
+            torch.cuda.get_device_name(0)
+            if torch.cuda.is_available()
+            else "CPU"
+        )
+
+        self.ai_dashboard.update_device(device)
+
         # Dashboard
         self.ai_dashboard.reset()
         self.ai_dashboard.update_model("EasyOCR")
@@ -1389,6 +1431,10 @@ class MainWindow(QMainWindow):
 
         elapsed = time.perf_counter() - start
 
+        self.ai_dashboard.update_inference_time(
+            elapsed * 1000
+        )
+
         fps = 1 / elapsed if elapsed > 0 else 0
 
         self.ai_dashboard.update_fps(fps)
@@ -1403,6 +1449,10 @@ class MainWindow(QMainWindow):
             })
 
         self.ai_dashboard.update_objects(texts)
+
+        self.ai_dashboard.update_object_count(
+            len(texts)
+        )
 
         self.ai_dashboard.update_status("Completed")
 
@@ -1426,3 +1476,9 @@ class MainWindow(QMainWindow):
             language="English"
         )
         self.ocr_dialog.exec()
+
+    def update_resolution(self, width, height):
+
+        self.resolution_label.setText(
+            f"{width} × {height}"
+        )

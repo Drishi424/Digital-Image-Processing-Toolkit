@@ -96,19 +96,36 @@ Images/output/
 output/
 results/
 
-# ==========================================
+## ==========================================
 # YOLO
 # ==========================================
 
+# Ignore YOLO training runs
 runs/
+AI_training/Runs/
+
+# Ignore generic datasets
 datasets/
 
-# Ignore downloaded YOLO weights
+# Ignore the actual drone dataset
+AI_training/Dataset/drone_dataset/train/
+AI_training/Dataset/drone_dataset/valid/
+
+# Ignore dataset images and labels
+AI_training/Dataset/**/*.jpg
+AI_training/Dataset/**/*.jpeg
+AI_training/Dataset/**/*.png
+AI_training/Dataset/**/*.txt
+
+# Ignore all YOLO/model weights by default
 *.pt
 
-# Keep custom models if you have any
-!Models/
-!Models/*.pt
+# ==========================================
+# Custom YOLO Model
+# ==========================================
+
+# Allow ONLY the custom trained drone model
+!AI_training/Models/drone_best.pt
 
 # ==========================================
 # Qt
