@@ -1,9 +1,0 @@
-path: C:/Users/Drishi/Desktop/Code Arcade/projects/Digital Image Processing Toolkit/AI_training/Dataset/drone_dataset
-
-train: train/images
-val: valid/images
-
-nc: 1
-
-names:
-  0: drone

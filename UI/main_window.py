@@ -74,7 +74,9 @@ class MainWindow(QMainWindow):
         self.welcome = WelcomeScreen()
 
         self.algorithm_map = self.create_algorithm_map()
-        self.setWindowIcon(QIcon(resource_path("Assets/icons/app_icon.ico")))
+        icon_path = resource_path("Assets/icons/app_icon.ico")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
 
         self.setWindowTitle("DIP Studio")
         self.resize(1600, 900)
